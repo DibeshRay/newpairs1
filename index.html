@@ -1,0 +1,348 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>New BaseChain Tokens</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f8f8;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      color: #4e54c8;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+  
+
+    .ai-analysis-result {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+      color: #444;
+    }
+
+    .container {
+      max-width: 100%;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* Divide the container into two columns */
+      grid-gap: 20px; /* Add some spacing between the columns */
+    }
+
+    #tokenList {
+      margin-top: 20px;
+      list-style-type: none;
+      padding: 0;
+    }
+
+    li {
+      background-color: #ffffff;
+      border: 1px solid #dddddd;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .address {
+      font-family: monospace;
+      overflow-wrap: break-word;
+    }
+
+    .button {
+      background-color: #4e54c8;
+      color: #ffffff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 5px;
+      margin-left: 10px;
+    }
+
+    .button:hover {
+      background-color: #3c3f88;
+    }
+
+    .contract-code-section {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .contract-code-section.show {
+      display: block;
+      grid-column: span 2; /* Make the section span across both columns */
+    }
+
+    .contract-code {
+      width: 100%;
+      height: 150px;
+      resize: none;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      color: #444;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+
+    .timestamp {
+      font-size: 14px;
+      color: #777;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>New BaseChain Tokens</h1>
+    <button class="button" onclick="fetchNewTokens()">Fetch New Tokens</button>
+    <ul id="tokenList"></ul>
+    <div class="contract-code-section" id="contractCodeSection">
+      <h3>Contract Code</h3>
+      <textarea class="contract-code" id="contractCodeTextArea" readonly></textarea>
+    </div>
+  </div>
+
+  <script src="https://cdn.ethers.io/lib/ethers-5.4.umd.min.js"></script>
+  <script>
+    const basescanApiKey = "8FAC6EJJFS4NJBHMZGZ8286WEKHAE2RTED";
+    const uniswapFactoryAddress = "0x169C06b4cfB09bFD73A81e6f2Bb1eB514D75bB19";
+
+    async function fetchNewTokens() {
+      const events = await fetchTokenCreationEvents();
+
+      if (events.length === 0) {
+        displayNoNewTokens();
+      } else {
+        const tokens = extractTokenAddresses(events);
+        displayTokens(tokens);
+      }
+    }
+
+    async function fetchTokenCreationEvents() {
+      const topic0 = "0x60806040";
+
+      const apiUrl = `https://api.basescan.org/api?module=logs&action=getLogs&fromBlock=2011800&toBlock=latest&address=${uniswapFactoryAddress}&apikey=${basescanApiKey}`;
+
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.status === "1" && data.message === "OK") {
+          return data.result;
+        } else {
+          console.error("Error fetching token creation events:", data.message);
+          throw new Error("Failed to fetch token creation events");
+        }
+      } catch (error) {
+        console.error("Error fetching token creation events:", error);
+        throw error;
+      }
+    }
+
+    function extractTokenAddresses(events) {
+      return events.map(event => event.topics[1]);
+    }
+
+    async function fetchBlockTimestamp(address) {
+      const apiUrl = `https://api.basescan.org/api?module=proxy&action=eth_getBlockByNumber&tag=latest&boolean=true&apikey=${basescanApiKey}`;
+
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.result && data.result.timestamp) {
+          return parseInt(data.result.timestamp, 16);
+        } else {
+          console.error("Error fetching block timestamp:", data);
+          return 0;
+        }
+      } catch (error) {
+        console.error("Error fetching block timestamp:", error);
+        return 0;
+      }
+    }
+
+    function formatAddress(address) {
+      return address.replace(/^0x0+/, '0x');
+    }
+
+    function goTobasescan(address) {
+      window.open(`https://basescan.org/address/${address}`, '_blank');
+    }
+
+    async function fetchAndDisplayContractCode(address) {
+      const contractCode = await fetchContractCode(address);
+      if (contractCode) {
+        // Create a new window to display the contract code
+        const newTab = window.open("", "_blank", "width=600,height=400");
+        newTab.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Contract Code</title>
+            <style>
+              body {
+                font-family: monospace;
+                background-color: #f8f8f8;
+                margin: 0;
+                padding: 10px;
+              }
+            </style>
+          </head>
+          <body>
+            <pre>${contractCode}</pre>
+          </body>
+          </html>
+        `);
+      } else {
+        // Display an error message if contract code is not available or not verified
+        const modal = document.createElement("div");
+        modal.classList.add("modal");
+
+        const closeButton = document.createElement("span");
+        closeButton.classList.add("close");
+        closeButton.innerHTML = "&times;";
+        closeButton.addEventListener("click", () => {
+          document.body.removeChild(modal);
+        });
+
+        const message = document.createElement("p");
+        message.textContent = "Contract code not available or not verified.";
+
+        modal.appendChild(closeButton);
+        modal.appendChild(message);
+
+        document.body.appendChild(modal);
+      }
+    }
+
+    function showAIAnalysisResult(result) {
+      const aiAnalysisResultDiv = document.createElement("div");
+      aiAnalysisResultDiv.textContent = result;
+
+      const contractCodeSection = document.getElementById("contractCodeSection");
+      contractCodeSection.appendChild(aiAnalysisResultDiv);
+    }
+
+    async function analyzeContractCode(contractCode) {
+      // Replace this with the actual AI analysis code or API call
+      // For this example, we'll assume a dummy AI analysis result.
+      return "AI analysis result: This contract code seems secure and well-written.";
+    }
+
+    async function fetchContractCode(address) {
+      const apiKeys = '8FAC6EJJFS4NJBHMZGZ8286WEKHAE2RTED';
+      const apiUrls = `https://api.basescan.org/api?module=contract&action=getsourcecode&address=${address}&apikey=${apiKeys}`;
+
+      try {
+        const response = await fetch(apiUrls);
+        const data = await response.json();
+
+        if (data.status === "1" && data.result.length > 0) {
+          return data.result[0].SourceCode;
+        } else {
+          console.error("Error fetching contract source code:", data);
+          return null;
+        }
+      } catch (error) {
+        console.error("Error fetching contract source code:", error);
+        return null;
+      }
+    }
+
+    async function displayTokens(tokens) {
+      const tokenList = document.getElementById("tokenList");
+      tokenList.innerHTML = "";
+
+      tokens.reverse().forEach(async (token) => {
+        const formattedAddress = formatAddress(token);
+
+        if (formattedAddress === "0x4200000000000000000000000000000000000006") {
+          return;
+        }
+
+        const li = document.createElement("li");
+
+        // Fetch contract deployer's address
+        const deployerAddress = await fetchDeployerAddress(token);
+        const formattedDeployer = formatAddress(deployerAddress);
+
+        // Fetch deployer's ETH balance
+        const ethBalance = await fetchEthBalance(deployerAddress);
+
+        const timestamp = await fetchBlockTimestamp(token);
+        const timestampStr = new Date(timestamp * 1000).toLocaleString();
+
+        li.innerHTML = `
+          <span class="address">${formattedAddress}</span>
+          <p>Deployed by: ${formattedDeployer}</p>
+          <p>ETH Balance: ${ethBalance} ETH</p>
+          <p class="timestamp">Created on: ${timestampStr}</p>
+          <button class="button" onclick="goTobasescan('${formattedAddress}')">View on basescan</button>
+          <button class="button contract-btn" onclick="fetchAndDisplayContractCode('${formattedAddress}')">Fetch Contract Code</button>
+        `;
+
+        tokenList.appendChild(li);
+      });
+    }
+
+    async function fetchDeployerAddress(address) {
+      const apiUrl = `https://api.basescan.org/api?module=contract&action=getcreator&address=${address}&apikey=${basescanApiKey}`;
+
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.status === "1" && data.message === "OK") {
+          return data.result;
+        } else {
+          console.error("Error fetching deployer address:", data.message);
+          throw new Error("Failed to fetch deployer address");
+        }
+      } catch (error) {
+        console.error("Error fetching deployer address:", error);
+        throw error;
+      }
+    }
+
+    async function fetchEthBalance(address) {
+      const apiUrl = `https://api.basescan.org/api?module=account&action=balance&address=${address}&apikey=${basescanApiKey}`;
+
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.status === "1" && data.message === "OK") {
+          // Convert balance from wei to ETH
+          const ethBalance = ethers.utils.formatEther(data.result);
+          return ethBalance;
+        } else {
+          console.error("Error fetching ETH balance:", data.message);
+          throw new Error("Failed to fetch ETH balance");
+        }
+      } catch (error) {
+        console.error("Error fetching ETH balance:", error);
+        throw error;
+      }
+    }
+  </script>
+</body>
+</html>
+
