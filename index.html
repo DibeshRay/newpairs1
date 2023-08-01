@@ -15,30 +15,29 @@
       text-align: center;
       padding: 20px 0;
     }
+      .ai-analysis-result {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    color: #444;
+  }
 
-    .ai-analysis-result {
-      margin-top: 10px;
-      padding: 10px;
-      background-color: #f9f9f9;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      font-size: 14px;
-      color: #444;
-    }
-
-    .container {
-      max-width: 100%;
-      width: 100%;
-      margin: 0 auto;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      background-color: #ffffff;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-gap: 20px;
-    }
+  .container {
+    max-width: 100%;
+    width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Divide the container into two columns */
+    grid-gap: 20px; /* Add some spacing between the columns */
+  }
 
     #tokenList {
       margin-top: 20px;
@@ -80,7 +79,7 @@
 
     .contract-code-section.show {
       display: block;
-      grid-column: span 2;
+      grid-column: span 2; /* Make the section span across both columns */
     }
 
     .contract-code {
@@ -116,7 +115,7 @@
 
   <script src="https://cdn.ethers.io/lib/ethers-5.4.umd.min.js"></script>
   <script>
-    const etherscanApiKey = "YOUR_ETHERSCAN_API_KEY";
+    const etherscanApiKey = "AFFD2SXUNV3RY968V4442KMBP4928IBMJ7";
     const uniswapFactoryAddress = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
 
     async function fetchNewTokens() {
@@ -155,6 +154,33 @@
       return events.map(event => event.topics[1]);
     }
 
+    function displayTokens(tokens) {
+      const tokenList = document.getElementById("tokenList");
+      tokenList.innerHTML = "";
+
+      tokens.reverse().forEach(async token => {
+        const formattedAddress = formatAddress(token);
+
+        if (formattedAddress === "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {
+          return;
+        }
+
+        const li = document.createElement("li");
+
+        const timestamp = await fetchBlockTimestamp(token);
+        const timestampStr = new Date(timestamp * 1000).toLocaleString();
+
+        li.innerHTML = `
+          <span class="address">${formattedAddress}</span>
+          <p class="timestamp">Created on: ${timestampStr}</p>
+          <button class="button" onclick="goToEtherscan('${formattedAddress}')">View on Etherscan</button>
+          <button class="button contract-btn" onclick="fetchAndDisplayContractCode('${formattedAddress}')">Fetch Contract Code</button>
+        `;
+
+        tokenList.appendChild(li);
+      });
+    }
+
     async function fetchBlockTimestamp(address) {
       const apiUrl = `https://api.etherscan.io/api?module=proxy&action=eth_getBlockByNumber&tag=latest&boolean=true&apikey=${etherscanApiKey}`;
 
@@ -187,131 +213,8 @@
       window.open(`https://etherscan.io/address/${address}`, '_blank');
     }
 
-    async function fetchAndDisplayContractCode(address) {
-      const contractCode = await fetchContractCode(address);
-      if (contractCode) {
-        // Create a new window to display the contract code and the analyze button
-        const newTab = window.open("", "_blank", "width=600,height=400");
-        newTab.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Contract Code</title>
-            <style>
-              /* Existing styles here */
 
-              /* New style for the analyze button */
-              .ai-analysis-result {
-                margin-top: 10px;
-                padding: 10px;
-                background-color: #f9f9f9;
-                border: 1px solid #ddd;
-                border-radius: 5px;
-                font-size: 14px;
-                color: #444;
-              }
-            </style>
-          </head>
-          <body>
-            <pre>${contractCode}</pre>
-          </body>
-          </html>
-        `);
-      } else {
-        // Display an error message if contract code is not available or not verified
-        const modal = document.createElement("div");
-        modal.classList.add("modal");
-
-        const closeButton = document.createElement("span");
-        closeButton.classList.add("close");
-        closeButton.innerHTML = "&times;";
-        closeButton.addEventListener("click", () => {
-          document.body.removeChild(modal);
-        });
-
-        const message = document.createElement("p");
-        message.textContent = "Contract code not available or not verified.";
-
-        modal.appendChild(closeButton);
-        modal.appendChild(message);
-
-        document.body.appendChild(modal);
-      }
-    }
-
-    async function fetchContractCode(address) {
-      const apiUrls = `https://api.etherscan.io/api?module=contract&action=getsourcecode&address=${address}&apikey=${etherscanApiKey}`;
-
-      try {
-        const response = await fetch(apiUrls);
-        const data = await response.json();
-
-        if (data.status === "1" && data.result.length > 0) {
-          return data.result[0].SourceCode;
-        } else {
-          console.error("Error fetching contract source code:", data);
-          return null;
-        }
-      } catch (error) {
-        console.error("Error fetching contract source code:", error);
-        return null;
-      }
-    }
-
-    async function fetchDeployerInfo(address) {
-      const provider = new ethers.providers.getDefaultProvider();
-      const contract = new ethers.Contract(address, ["function getDeployer() external view returns (address)"], provider);
-
-      try {
-        const deployer = await contract.getDeployer();
-        const balance = await provider.getBalance(deployer);
-
-        return {
-          deployer: deployer,
-          balance: ethers.utils.formatEther(balance), // Convert balance from Wei to Ether
-        };
-      } catch (error) {
-        console.error("Error fetching deployer info:", error);
-        return null;
-      }
-    }
-
-    async function displayTokens(tokens) {
-      const tokenList = document.getElementById("tokenList");
-      tokenList.innerHTML = "";
-
-      tokens.reverse().forEach(async token => {
-        const formattedAddress = formatAddress(token);
-
-        if (formattedAddress === "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {
-          return;
-        }
-
-        const li = document.createElement("li");
-
-        const timestamp = await fetchBlockTimestamp(token);
-        const timestampStr = new Date(timestamp * 1000).toLocaleString();
-
-        li.innerHTML = `
-          <span class="address">${formattedAddress}</span>
-          <p class="timestamp">Created on: ${timestampStr}</p>
-          <button class="button" onclick="goToEtherscan('${formattedAddress}')">View on Etherscan</button>
-          <button class="button contract-btn" onclick="fetchAndDisplayContractCode('${formattedAddress}')">Fetch Contract Code</button>
-        `;
-
-        const deployerInfo = await fetchDeployerInfo(formattedAddress);
-        if (deployerInfo) {
-          li.innerHTML += `
-            <p>Deployer Address: <span class="address">${deployerInfo.deployer}</span></p>
-            <p>Deployer ETH Balance: ${deployerInfo.balance} ETH</p>
-          `;
-        } else {
-          li.innerHTML += "<p>Error fetching deployer info.</p>";
-        }
-
-        tokenList.appendChild(li);
-      });
-    }
+    
   </script>
 </body>
 </html>
