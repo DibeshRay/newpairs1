@@ -187,65 +187,7 @@
       window.open(`https://basescan.org/address/${address}`, '_blank');
     }
 
-    async function fetchAndDisplayContractCode(address) {
-      const contractCode = await fetchContractCode(address);
-      if (contractCode) {
-        // Create a new window to display the contract code
-        const newTab = window.open("", "_blank", "width=600,height=400");
-        newTab.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Contract Code</title>
-            <style>
-              body {
-                font-family: monospace;
-                background-color: #f8f8f8;
-                margin: 0;
-                padding: 10px;
-              }
-            </style>
-          </head>
-          <body>
-            <pre>${contractCode}</pre>
-          </body>
-          </html>
-        `);
-      } else {
-        // Display an error message if contract code is not available or not verified
-        const modal = document.createElement("div");
-        modal.classList.add("modal");
-
-        const closeButton = document.createElement("span");
-        closeButton.classList.add("close");
-        closeButton.innerHTML = "&times;";
-        closeButton.addEventListener("click", () => {
-          document.body.removeChild(modal);
-        });
-
-        const message = document.createElement("p");
-        message.textContent = "Contract code not available or not verified.";
-
-        modal.appendChild(closeButton);
-        modal.appendChild(message);
-
-        document.body.appendChild(modal);
-      }
-    }
-
-    function showAIAnalysisResult(result) {
-      const aiAnalysisResultDiv = document.createElement("div");
-      aiAnalysisResultDiv.textContent = result;
-
-      const contractCodeSection = document.getElementById("contractCodeSection");
-      contractCodeSection.appendChild(aiAnalysisResultDiv);
-    }
-
-    async function analyzeContractCode(contractCode) {
-      // Replace this with the actual AI analysis code or API call
-      // For this example, we'll assume a dummy AI analysis result.
-      return "AI analysis result: This contract code seems secure and well-written.";
-    }
+   
 
     async function fetchContractCode(address) {
       const apiKeys = '8FAC6EJJFS4NJBHMZGZ8286WEKHAE2RTED';
@@ -341,6 +283,65 @@
         console.error("Error fetching ETH balance:", error);
         throw error;
       }
+    }
+     async function fetchAndDisplayContractCode(address) {
+      const contractCode = await fetchContractCode(address);
+      if (contractCode) {
+        // Create a new window to display the contract code
+        const newTab = window.open("", "_blank", "width=600,height=400");
+        newTab.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Contract Code</title>
+            <style>
+              body {
+                font-family: monospace;
+                background-color: #f8f8f8;
+                margin: 0;
+                padding: 10px;
+              }
+            </style>
+          </head>
+          <body>
+            <pre>${contractCode}</pre>
+          </body>
+          </html>
+        `);
+      } else {
+        // Display an error message if contract code is not available or not verified
+        const modal = document.createElement("div");
+        modal.classList.add("modal");
+
+        const closeButton = document.createElement("span");
+        closeButton.classList.add("close");
+        closeButton.innerHTML = "&times;";
+        closeButton.addEventListener("click", () => {
+          document.body.removeChild(modal);
+        });
+
+        const message = document.createElement("p");
+        message.textContent = "Contract code not available or not verified.";
+
+        modal.appendChild(closeButton);
+        modal.appendChild(message);
+
+        document.body.appendChild(modal);
+      }
+    }
+
+    function showAIAnalysisResult(result) {
+      const aiAnalysisResultDiv = document.createElement("div");
+      aiAnalysisResultDiv.textContent = result;
+
+      const contractCodeSection = document.getElementById("contractCodeSection");
+      contractCodeSection.appendChild(aiAnalysisResultDiv);
+    }
+
+    async function analyzeContractCode(contractCode) {
+      // Replace this with the actual AI analysis code or API call
+      // For this example, we'll assume a dummy AI analysis result.
+      return "AI analysis result: This contract code seems secure and well-written.";
     }
   </script>
 </body>
